@@ -1,0 +1,30 @@
+#!/bin/sh
+#nmcli tool, version 1.2.6
+nmcli_cmd0="show --active"
+nmcli_args="NAME,TYPE"
+nmcli_cmd1="show"
+nmcli_grep="vpn"
+if [ $(hostname) = "bb3" ]; then
+	#older(?) nmcli
+	nmcli_cmd0="status"
+	nmcli_args="NAME,VPN"
+	nmcli_cmd1="status"
+	nmcli_grep="yes"
+fi
+getvpnstatus() {
+	vpn_name="$(nmcli -t -f "$nmcli_args" con $nmcli_cmd0 | grep "$nmcli_grep" | awk -F: '{print $1}')"
+	vpncon="$(nmcli con $nmcli_cmd1 id "$vpn_name" 2>/dev/null | grep VPN.VPN-STATE | awk '{print $2}')"
+}
+for n in autovpn vpnwait; do
+	pkill -15 "$n"
+done
+echo 'Please wait, re-enabling AutoVPN...'
+nohup $HOME/.autovpn/autovpn > /dev/null 2>&1 &
+while true; do
+	getvpnstatus
+	if [ "$vpncon" = "5" ]; then
+		break
+	fi
+	sleep 1
+done
+echo 'Your VPN connection is now active.'

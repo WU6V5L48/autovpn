@@ -1,0 +1,41 @@
+#!/bin/sh
+
+wait_time=250
+if [ $(hostname) = "bb3" ]; then
+	vpn_uuid='56be6dc8-e8ef-4e4f-8507-abac077f3ed1'
+else
+	vpn_uuid=$(nmcli -f uuid,active,type con show | grep yes.*vpn | awk '{print $1}')
+fi
+
+echo 'Closing torrent applications...'
+for n in \
+	vpnwait \
+	PornTime \
+	transmission \
+	WebTorrent \
+	Popcorn-Time \
+	liferea \
+	autovpn \
+; do
+	#if [ "$(echo "$n" | grep -i porn)" = '' ]; then
+	#	echo "... closing $n"
+	#fi 
+	pkill -15 "$n"
+	pkill_wait=0
+	while pgrep "$n" >/dev/null 2>&1; do
+		sleep 1
+		pkill_wait=$(($pkill_wait+1))
+		if [ "$pkill_wait" -ge 20 ]; then
+			echo "kill -9ing process $n"
+			pkill -9 "$n"
+			echo "waiting for $n to terminate" 
+			while pgrep "$n" >/dev/null 2>&1; do
+				sleep 1
+			done
+		fi
+	done
+done
+echo 'Closing VPN tunnel...'
+nmcli con down uuid "$vpn_uuid" 2> /dev/null
+nohup vpnwait "$wait_time" > /dev/null 2>&1 &
+echo "AutoVPN has been paused for $wait_time minutes."

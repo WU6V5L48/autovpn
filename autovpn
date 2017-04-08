@@ -1,0 +1,57 @@
+#!/bin/bash
+
+disabled="disabled"
+default_vpn="PIA+ - US East"
+ssid_dir="networks"
+counter_reset=360
+nmcli_cmd="show"
+
+counter=0
+if [ "$(id -u)" = "0" ]; then
+	autovpn_dir="autovpn"
+else
+	autovpn_dir=".autovpn"
+fi
+if [ $(hostname) = "bb3" ]; then
+	nmcli_cmd="status"
+	default_vpn="PIA - US Texas"
+fi
+countEm() {
+	if [ $counter -ge $counter_reset ]; then
+		echo $1
+		counter=0		
+	else
+		counter=$((counter+1))
+	fi
+}
+getNetwork() {
+	essid=$(iwgetid -r)
+	if [ "$essid" = '' ]; then
+		countEm "No wireless network, switching to wired..." 
+		essid=$(ip link | grep 'state UP' | cut -d' ' -f2 | sed s/://g)
+	fi
+	if [ ! -d $HOME/$autovpn_dir/$ssid_dir ]; then
+		mkdir -p $HOME/$autovpn_dir/$ssid_dir
+	fi
+	if [ ! -f "$HOME/$autovpn_dir/$ssid_dir/$essid" ]; then
+		echo "$default_vpn" | tee "$HOME/$autovpn_dir/$ssid_dir/$essid"
+	fi
+}
+
+while [ "true" ]
+do
+	getNetwork
+	vpn_name=$(cat "$HOME/$autovpn_dir/$ssid_dir/$essid")
+	if [[ "$vpn_name" == "$disabled" ]]; then
+		countEm "AutoVPN autoconnect is user-disabled."
+	else
+		vpncon=$(nmcli con $nmcli_cmd id "$vpn_name" | grep VPN.VPN-STATE | awk '{print $2}')
+		if [[ $vpncon != "5" ]]; then
+			echo "VPN disconnected, trying to reconnect..."
+			(sleep 1s && nmcli con up id "$vpn_name")
+		else
+			countEm "AutoVPN has already connected :-)"
+		fi
+	fi
+	sleep 1 
+done

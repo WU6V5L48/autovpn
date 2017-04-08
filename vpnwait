@@ -1,0 +1,9 @@
+#!/bin/sh
+# courtesy of https://is.gd/Krbavf
+WAIT_TIME=150	
+case $1 in
+    ''|*[!0-9]*) echo "not a number, using default of $WAIT_TIME minutes" ;;
+    *) WAIT_TIME=$1 ;;
+esac
+sleep $WAIT_TIME'm'
+nohup $HOME/.autovpn/autovpn > /dev/null 2>&1 &
