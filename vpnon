@@ -1,4 +1,5 @@
 #!/bin/sh
+autovpn_dir="$HOME/bin/autovpn"
 #nmcli tool, version 1.2.6
 nmcli_cmd0="show --active"
 nmcli_args="NAME,TYPE"
@@ -19,7 +20,7 @@ for n in autovpn vpnwait; do
 	pkill -15 "$n"
 done
 echo 'Please wait, re-enabling AutoVPN...'
-nohup $HOME/.autovpn/autovpn > /dev/null 2>&1 &
+nohup "$autovpn_dir/autovpn" > /dev/null 2>&1 &
 while true; do
 	getvpnstatus
 	if [ "$vpncon" = "5" ]; then
